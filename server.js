@@ -13,7 +13,7 @@ app.use(express.static('public'));
 
 // Servir l'index HTML
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index .html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // API: Recherche web + analyse prospect

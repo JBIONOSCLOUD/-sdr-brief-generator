@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDR Brief Generator - IONOS Cloud</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+    .header { background: linear-gradient(135deg, #003d8e 0%, #0052b4 100%); color: white; padding: 2.5rem 1.5rem; text-align: center; }
+    .header h1 { font-size: 28px; margin-bottom: 0.5rem; font-weight: 700; }
+    .header p { font-size: 14px; opacity: 0.95; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+    .search-box { background: white; padding: 2rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; }
+    .search-box h2 { color: #003d8e; margin-bottom: 1rem; font-size: 16px; font-weight: 600; }
+    .search-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    input { flex: 1; min-width: 200px; padding: 0.85rem 1.25rem; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
+    input:focus { outline: none; border-color: #003d8e; box-shadow: 0 0 0 3px rgba(0,61,142,0.1); }
+    button { padding: 0.85rem 2rem; background: #003d8e; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; white-space: nowrap; }
+    button:hover { background: #002a62; transform: translateY(-2px); }
+    button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    .loading { text-align: center; padding: 2rem; color: #003d8e; display: none; }
+    .loading.active { display: block; }
+    .spinner { border: 3px solid #e0e0e0; border-top: 3px solid #003d8e; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .content { display: none; }
+    .content.active { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e0e0e0; }
+    .card h3 { color: #003d8e; margin-bottom: 1rem; font-weight: 600; }
+    .card p { line-height: 1.6; margin-bottom: 0.75rem; color: #666; }
+    .metric { background: linear-gradient(135deg, #f0f4f8 0%, #e6f1fb 100%); padding: 1.5rem; text-align: center; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #d4e4f7; }
+    .metric-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.5px; font-weight: 600; }
+    .metric-value { font-size: 32px; font-weight: 700; color: #003d8e; }
+    .placeholder { text-align: center; padding: 3rem; color: #999; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid #e0e0e0; background: white; border-radius: 8px 8px 0 0; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .tab-btn { background: none; border: none; padding: 1.25rem 1.75rem; cursor: pointer; font-size: 14px; font-weight: 600; color: #999; border-bottom: 3px solid transparent; transition: all 0.3s; white-space: nowrap; }
+    .tab-btn.active { color: #003d8e; border-bottom-color: #003d8e; }
+    .tab-btn:hover { color: #003d8e; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .angle-box { background: #f9fafb; border-left: 4px solid #003d8e; padding: 1.25rem; margin-bottom: 1rem; }
+    .angle-box h4 { color: #003d8e; margin-bottom: 0.75rem; font-weight: 600; }
+    .angle-box p { font-size: 13px; color: #666; margin-bottom: 0.5rem; }
+    .badge { display: inline-block; background: #e6f1fb; color: #0c447c; padding: 0.4rem 0.9rem; border-radius: 20px; font-size: 12px; font-weight: 600; margin-right: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #b5d4f4; }
+    .error { background: #fcebeb; border: 1px solid #f7c1c1; border-left: 4px solid #e24b4a; color: #a32d2d; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: none; }
+    .error.active { display: block; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+    .search-results { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; }
+    .search-result { padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0; }
+    .search-result:last-child { border-bottom: none; }
+    .search-result-title { font-size: 13px; font-weight: 600; color: #003d8e; margin-bottom: 0.25rem; }
+    .search-result-snippet { font-size: 12px; color: #666; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>☁️ SDR Brief Generator</h1>
+    <p>Recherche web live + analyse prospect IONOS Cloud</p>
+  </div>
+
+  <div class="container">
+    <div class="search-box">
+      <h2>📝 Analyser une entreprise</h2>
+      <div class="search-group">
+        <input type="text" id="companyInput" placeholder="Entrez le nom de l'entreprise (ex: Miranui, Capgemini...)" onkeypress="if(event.key==='Enter') searchCompany()">
+        <button id="searchBtn" onclick="searchCompany()">🔍 Rechercher</button>
+      </div>
+      <div id="loadingDiv" class="loading">
+        <div class="spinner"></div>
+        <p>Recherche web en cours...</p>
+      </div>
+      <div id="errorDiv" class="error">
+        <span id="errorText"></span>
+      </div>
+    </div>
+
+    <div id="placeholder" class="placeholder">
+      <p><strong>👉 Commencez par entrer le nom d'une entreprise</strong></p>
+      <p style="font-size: 12px;">Exemples : Miranui, Capgemini, Accenture, Sopra Steria...</p>
+    </div>
+
+    <div id="content" class="content">
+      <div id="searchResultsDiv" class="search-results" style="display: none;">
+        <h4>📊 Résultats de recherche</h4>
+        <div id="searchResultsList"></div>
+      </div>
+
+      <h2 id="companyTitle" style="color: #003d8e; margin-bottom: 1.5rem;"></h2>
+
+      <div class="grid-2">
+        <div class="metric">
+          <div class="metric-label">Probabilité partenariat</div>
+          <div class="metric-value" id="probability">70%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Temps estimé conversion</div>
+          <div class="metric-value" id="timeline">6-9 mois</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'overview')">Vue d'ensemble</button>
+        <button class="tab-btn" onclick="switchTab(event, 'angles')">5 angles IONOS</button>
+        <button class="tab-btn" onclick="switchTab(event, 'accroche')">Phrases clés</button>
+      </div>
+
+      <div id="overview" class="tab-content active">
+        <div class="card">
+          <h3>Profil de l'entreprise</h3>
+          <p><strong>Secteur :</strong> <span id="sector">Cloud & Services IT</span></p>
+          <p><strong>Expertise Cloud :</strong> <span id="cloudExpertise">Analyse en cours</span></p>
+          <p style="margin-top: 1rem;"><strong>Tags détectés :</strong><br><span id="tags"><span class="badge">Cloud</span><span class="badge">DevOps</span></span></p>
+        </div>
+        <div class="card">
+          <h3>📋 Recommandation</h3>
+          <p id="recommendation">Approche multi-angles IONOS Cloud recommandée.</p>
+        </div>
+      </div>
+
+      <div id="angles" class="tab-content">
+        <div class="card">
+          <h3>Les 5 angles IONOS Cloud</h3>
+        </div>
+        <div class="angle-box">
+          <h4>1️⃣ Souveraineté RGPD & Indépendance Européenne</h4>
+          <p><strong>Pour :</strong> CIO, Head of Security, Compliance</p>
+          <p><strong>Accroche :</strong> "Vos clients exigent souveraineté EU. IONOS = datacenters FR/DE certifiés, zéro dépendance US."</p>
+          <p><strong style="color: #003d8e;">ROI :</strong> +10-15M€ TAM/an (secteur public/critique)</p>
+        </div>
+        <div class="angle-box">
+          <h4>2️⃣ Réduction TCO & Coûts -40-50%</h4>
+          <p><strong>Pour :</strong> CFO, Head of Finance</p>
+          <p><strong>Accroche :</strong> "Factures cloud explosives? IONOS -40-50% vs hyperscalers, tarif transparent."</p>
+          <p><strong style="color: #003d8e;">ROI :</strong> Audit gratuit = outil de vente puissant</p>
+        </div>
+        <div class="angle-box">
+          <h4>3️⃣ Scalabilité Kubernetes Managé (IKS)</h4>
+          <p><strong>Pour :</strong> VP DevOps, Tech Leads</p>
+          <p><strong>Accroche :</strong> "Landing zones complexes? IONOS IKS réduit ops de 60%."</p>
+          <p><strong style="color: #003d8e;">ROI :</strong> Marge accrue + fidélisation clients</p>
+        </div>
+        <div class="angle-box">
+          <h4>4️⃣ AI Model Hub & Stack Data/IA</h4>
+          <p><strong>Pour :</strong> CDO, Head of AI</p>
+          <p><strong>Accroche :</strong> "IA souveraine = 10K+ modèles EU, GDPR-compliant."</p>
+          <p><strong style="color: #003d8e;">ROI :</strong> Nouveau segment PME/ETI régionales</p>
+        </div>
+        <div class="angle-box">
+          <h4>5️⃣ Programme ISV & Marketplace</h4>
+          <p><strong>Pour :</strong> CEO, VP Product</p>
+          <p><strong>Accroche :</strong> "Productifiez vos templates = 100K-500K€/an récurrent."</p>
+          <p><strong style="color: #003d8e;">ROI :</strong> Passage service→produit = 10x valeur</p>
+        </div>
+      </div>
+
+      <div id="accroche" class="tab-content">
+        <div class="card">
+          <h3>4 approches de prospection</h3>
+          <p style="margin-bottom: 1.5rem;">Sélectionnez selon le contact et timing</p>
+          <p style="background: #faf9fc; border-left: 4px solid #7f77dd; padding: 1.25rem; margin-bottom: 1rem; font-size: 13px; line-height: 1.7;">
+            <strong style="color: #534ab7;">📱 Version 1 : Directe (Technique)</strong><br><br>
+            "Vous construisez des solutions cloud pour des entreprises exigeantes. IONOS Cloud a exactement ce qu'il faut (datacenters EU, prix -40% vs Azure/AWS). On parle 10 min?"
+          </p>
+          <p style="background: #faf9fc; border-left: 4px solid #7f77dd; padding: 1.25rem; margin-bottom: 1rem; font-size: 13px; line-height: 1.7;">
+            <strong style="color: #534ab7;">💰 Version 2 : CFO-centric (Commercial)</strong><br><br>
+            "Je sais que vos clients paient trop cher en cloud. IONOS est 40-50% moins cher + zéro dépendance US = argument de vente pur. Vous testez?"
+          </p>
+          <p style="background: #faf9fc; border-left: 4px solid #7f77dd; padding: 1.25rem; margin-bottom: 1rem; font-size: 13px; line-height: 1.7;">
+            <strong style="color: #534ab7;">🚀 Version 3 : Produit/Scaling (Stratégique)</strong><br><br>
+            "Vous êtes en croissance. Si vous productifiez vos templates cloud + les distribuez via marketplace IONOS, c'est 100K-500K€/an récurrent. On cause?"
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function searchCompany() {
+      const company = document.getElementById('companyInput').value.trim();
+      if (!company) {
+        showError('Entrez un nom d\'entreprise');
+        return;
+      }
+
+      document.getElementById('loadingDiv').classList.add('active');
+      document.getElementById('errorDiv').classList.remove('active');
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('searchBtn').disabled = true;
+
+      try {
+        // Recherche via DuckDuckGo API (CORS-friendly)
+        const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(company)}&format=json`);
+        const data = await response.json();
+
+        const searchResults = data.Results ? data.Results.slice(0, 5).map(r => ({
+          title: r.Title,
+          snippet: r.Result,
+          url: r.FirstURL
+        })) : [];
+
+        // Analyse les résultats
+        const analysis = analyzeCompany(company, searchResults);
+        displayResults(company, analysis, searchResults);
+
+      } catch (error) {
+        showError('Erreur recherche: ' + error.message);
+      } finally {
+        document.getElementById('loadingDiv').classList.remove('active');
+        document.getElementById('searchBtn').disabled = false;
+      }
+    }
+
+    function analyzeCompany(company, results) {
+      const allText = (results.map(r => r.snippet).join(' ') + results.map(r => r.title).join(' ')).toLowerCase();
+
+      const hasCloud = allText.includes('cloud') || allText.includes('aws') || allText.includes('azure');
+      const hasConsulting = allText.includes('conseil') || allText.includes('consulting') || allText.includes('services');
+      const hasData = allText.includes('data') || allText.includes('ia') || allText.includes('ai');
+
+      let sector = 'Services informatiques';
+      if (hasConsulting && hasCloud) sector = 'Conseil IT / Services cloud';
+      else if (hasConsulting) sector = 'Cabinet de conseil';
+      else if (hasCloud) sector = 'Fournisseur cloud / Infrastructure';
+
+      return {
+        sector,
+        hasCloudExpertise: hasCloud,
+        probability: (hasCloud && hasConsulting) ? '75%' : '65%',
+        timeline: '6-9 mois',
+        tags: extractTags(allText),
+        recommendation: generateRecommendation(company, hasCloud, hasConsulting, hasData)
+      };
+    }
+
+    function extractTags(text) {
+      const tags = ['Cloud', 'DevOps', 'Architecture IT'];
+      if (text.includes('kubernetes')) tags.push('Kubernetes');
+      if (text.includes('data')) tags.push('Data & IA');
+      if (text.includes('migration')) tags.push('Migration Cloud');
+      return tags.slice(0, 5);
+    }
+
+    function generateRecommendation(company, hasCloud, hasConsulting, hasData) {
+      if (hasCloud && hasConsulting) {
+        return `${company} est partenaire idéal IONOS. Angles prioritaires : souveraineté RGPD + réduction TCO cloud.`;
+      } else if (hasCloud) {
+        return `${company} expertise cloud identifiée. Angle principal : programme ISV + productification templates.`;
+      } else if (hasConsulting) {
+        return `${company} cabinet conseil. Approche : démonstration valeur IONOS via POC gratuit.`;
+      } else {
+        return `${company} : Approche découverte multi-angles recommandée.`;
+      }
+    }
+
+    function displayResults(company, analysis, searchResults) {
+      document.getElementById('companyTitle').textContent = company + ' — Brief de prospection';
+      document.getElementById('sector').textContent = analysis.sector;
+      document.getElementById('cloudExpertise').textContent = analysis.hasCloudExpertise ? 'Oui, expertise détectée ✅' : 'À confirmer';
+      document.getElementById('probability').textContent = analysis.probability;
+      document.getElementById('timeline').textContent = analysis.timeline;
+      document.getElementById('recommendation').textContent = analysis.recommendation;
+      document.getElementById('tags').innerHTML = analysis.tags.map(t => `<span class="badge">${t}</span>`).join('');
+
+      // Afficher résultats recherche
+      if (searchResults.length > 0) {
+        const resultsList = searchResults.map(r => `
+          <div class="search-result">
+            <div class="search-result-title">${r.title}</div>
+            <div class="search-result-snippet">${r.snippet}</div>
+          </div>
+        `).join('');
+        document.getElementById('searchResultsList').innerHTML = resultsList;
+        document.getElementById('searchResultsDiv').style.display = 'block';
+      }
+
+      document.getElementById('content').classList.add('active');
+    }
+
+    function showError(msg) {
+      document.getElementById('errorText').textContent = msg;
+      document.getElementById('errorDiv').classList.add('active');
+    }
+
+    function switchTab(event, tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDR Brief Generator - IONOS Cloud</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+    .header { background: linear-gradient(135deg, #003d8e 0%, #0052b4 100%); color: white; padding: 2rem; text-align: center; }
+    .header h1 { font-size: 28px; margin-bottom: 0.5rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .search-box { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .search-box h2 { color: #003d8e; margin-bottom: 1rem; font-size: 16px; }
+    .search-group { display: flex; gap: 0.75rem; }
+    input { flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    input:focus { outline: none; border-color: #003d8e; box-shadow: 0 0 0 3px rgba(0,61,142,0.1); }
+    button { padding: 0.75rem 2rem; background: #003d8e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button:hover { background: #002a62; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .loading { text-align: center; padding: 2rem; color: #003d8e; display: none; }
+    .loading.active { display: block; }
+    .spinner { border: 3px solid #e0e0e0; border-top: 3px solid #003d8e; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .content { display: none; }
+    .content.active { display: block; }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #e0e0e0; }
+    .card h3 { color: #003d8e; margin-bottom: 1rem; }
+    .card p { line-height: 1.6; margin-bottom: 0.75rem; color: #666; }
+    .metric { background: linear-gradient(135deg, #f0f4f8 0%, #e6f1fb 100%); padding: 1.5rem; text-align: center; border-radius: 8px; margin-bottom: 1rem; }
+    .metric-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .metric-value { font-size: 28px; font-weight: 700; color: #003d8e; }
+    .placeholder { text-align: center; padding: 3rem; color: #999; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; border-bottom: 2px solid #e0e0e0; background: white; border-radius: 8px 8px 0 0; }
+    .tab-btn { background: none; border: none; padding: 1rem 1.5rem; cursor: pointer; font-size: 14px; font-weight: 600; color: #999; border-bottom: 3px solid transparent; }
+    .tab-btn.active { color: #003d8e; border-bottom-color: #003d8e; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .angle-box { background: #f9fafb; border-left: 4px solid #003d8e; padding: 1.25rem; margin-bottom: 1rem; }
+    .angle-box h4 { color: #003d8e; margin-bottom: 0.5rem; }
+    .angle-box p { font-size: 13px; color: #666; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>☁️ SDR Brief Generator</h1>
+    <p>Recherche web live + analyse prospect IONOS Cloud</p>
+  </div>
+
+  <div class="container">
+    <div class="search-box">
+      <h2>📝 Analyser une entreprise</h2>
+      <div class="search-group">
+        <input type="text" id="companyInput" placeholder="Entrez le nom de l'entreprise (ex: Miranui, Capgemini...)" onkeypress="if(event.key==='Enter') searchCompany()">
+        <button id="searchBtn" onclick="searchCompany()">🔍 Rechercher</button>
+      </div>
+      <div id="loadingDiv" class="loading">
+        <div class="spinner"></div>
+        <p>Recherche en cours...</p>
+      </div>
+    </div>
+
+    <div id="placeholder" class="placeholder">
+      <p><strong>👉 Commencez par entrer le nom d'une entreprise</strong></p>
+      <p style="font-size: 12px;">Exemples : Miranui, Capgemini, Accenture...</p>
+    </div>
+
+    <div id="content" class="content">
+      <h2 id="companyTitle" style="color: #003d8e; margin-bottom: 1.5rem;"></h2>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+        <div class="metric">
+          <div class="metric-label">Probabilité partenariat</div>
+          <div class="metric-value" id="probability">70%</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Temps estimé conversion</div>
+          <div class="metric-value" id="timeline">6-9 mois</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'overview')">Vue d'ensemble</button>
+        <button class="tab-btn" onclick="switchTab(event, 'angles')">5 angles IONOS</button>
+        <button class="tab-btn" onclick="switchTab(event, 'accroche')">Phrases clés</button>
+      </div>
+
+      <div id="overview" class="tab-content active">
+        <div class="card">
+          <h3>Profil de l'entreprise</h3>
+          <p><strong>Secteur :</strong> <span id="sector">Analyse en cours...</span></p>
+          <p><strong>Expertise Cloud :</strong> <span id="cloudExpertise">Détection...</span></p>
+          <p><strong>Probabilité partenariat :</strong> <span id="prob2">70%</span></p>
+        </div>
+
+        <div class="card">
+          <h3>📋 Recommandation</h3>
+          <p id="recommendation">Analyse en cours...</p>
+        </div>
+      </div>
+
+      <div id="angles" class="tab-content">
+        <div class="card">
+          <h3>Les 5 angles IONOS Cloud</h3>
+        </div>
+        <div class="angle-box">
+          <h4>1️⃣ Souveraineté RGPD & Indépendance Européenne</h4>
+          <p><strong>Pour :</strong> CIO, Head of Security</p>
+          <p><strong>Accroche :</strong> "Vos clients exigent souveraineté EU. IONOS = datacenters FR/DE certifiés."</p>
+        </div>
+        <div class="angle-box">
+          <h4>2️⃣ Réduction TCO & Coûts -40-50%</h4>
+          <p><strong>Pour :</strong> CFO, Head of Finance</p>
+          <p><strong>Accroche :</strong> "Factures cloud explosives? IONOS -40-50% vs hyperscalers."</p>
+        </div>
+        <div class="angle-box">
+          <h4>3️⃣ Scalabilité Kubernetes Managé</h4>
+          <p><strong>Pour :</strong> VP DevOps, Tech Leads</p>
+          <p><strong>Accroche :</strong> "Landing zones complexes? IONOS IKS réduit ops de 60%."</p>
+        </div>
+        <div class="angle-box">
+          <h4>4️⃣ AI Model Hub & Stack Data</h4>
+          <p><strong>Pour :</strong> CDO, Head of AI</p>
+          <p><strong>Accroche :</strong> "IA souveraine = 10K+ modèles EU, GDPR-compliant."</p>
+        </div>
+        <div class="angle-box">
+          <h4>5️⃣ Programme ISV & Marketplace</h4>
+          <p><strong>Pour :</strong> CEO, VP Product</p>
+          <p><strong>Accroche :</strong> "Productifiez vos templates = 100K-500K€/an récurrent."</p>
+        </div>
+      </div>
+
+      <div id="accroche" class="tab-content">
+        <div class="card">
+          <h3>4 approches de prospection</h3>
+          <p style="margin-bottom: 1.5rem;">Adaptées selon le contact et timing</p>
+          <p style="background: #faf9fc; border-left: 4px solid #7f77dd; padding: 1rem; margin-bottom: 1rem; font-size: 13px; line-height: 1.6;">
+            <strong>📱 Version 1 : Directe (Technique)</strong><br><br>
+            "Vous construisez des solutions cloud pour des entreprises exigeantes. IONOS Cloud a exactement ce qu'il faut (datacenters EU, prix -40% vs Azure/AWS). On parle 10 min?"
+          </p>
+          <p style="background: #faf9fc; border-left: 4px solid #7f77dd; padding: 1rem; margin-bottom: 1rem; font-size: 13px; line-height: 1.6;">
+            <strong>💰 Version 2 : CFO-centric (Commercial)</strong><br><br>
+            "Je sais que vos clients paient trop cher en cloud. IONOS est 40-50% moins cher + zéro dépendance US = argument de vente pur. Vous testez?"
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function searchCompany() {
+      const company = document.getElementById('companyInput').value.trim();
+      if (!company) {
+        alert('Entrez un nom d\'entreprise');
+        return;
+      }
+
+      document.getElementById('loadingDiv').classList.add('active');
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('searchBtn').disabled = true;
+
+      try {
+        const response = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || 'Erreur recherche');
+
+        displayResults(company, data);
+
+      } catch (error) {
+        alert('Erreur: ' + error.message);
+      } finally {
+        document.getElementById('loadingDiv').classList.remove('active');
+        document.getElementById('searchBtn').disabled = false;
+      }
+    }
+
+    function displayResults(company, data) {
+      document.getElementById('companyTitle').textContent = company + ' — Brief de prospection';
+      document.getElementById('sector').textContent = data.analysis?.sector || 'Cloud & Services IT';
+      document.getElementById('cloudExpertise').textContent = data.analysis?.hasCloudExpertise ? 'Oui, expertise détectée' : 'À confirmer';
+      document.getElementById('recommendation').textContent = data.analysis?.recommendation || 'Approche multi-angles recommandée';
+      document.getElementById('prob2').textContent = data.analysis?.probability || '70%';
+      
+      document.getElementById('content').classList.add('active');
+    }
+
+    function switchTab(event, tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+
+</body>
+</html>
